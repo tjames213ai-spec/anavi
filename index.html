@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奉仕計画ナビゲーター - 地中海スタイル</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js for client-side PDF rendering & text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <!-- Google Fonts: Cute & Friendly Japanese Font "Zen Maru Gothic" -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Zen Maru Gothic', sans-serif;
+            background-color: #f3efe6;
+            background-image: radial-gradient(#dcd4c3 0.8px, transparent 0.8px);
+            background-size: 16px 16px;
+        }
+        .cute-title {
+            font-family: 'Zen Maru Gothic', sans-serif;
+            font-weight: 900;
+        }
+        /* High Contrast Mediterranean Gradient Header */
+        .gradient-mediterranean {
+            background: linear-gradient(135deg, #0a192f 0%, #0f3460 55%, #16213e 100%);
+        }
+        /* Terracotta Accents */
+        .bg-terracotta {
+            background-color: #b8431b;
+        }
+        .bg-terracotta-light {
+            background-color: #fbeee9;
+        }
+        .text-terracotta {
+            color: #b8431b;
+        }
+        .border-terracotta {
+            border-color: #d1582f;
+        }
+        /* Mediterranean Warm Card Shadow */
+        .med-shadow {
+            box-shadow: 0 10px 25px -5px rgba(2, 43, 92, 0.12), 0 8px 10px -6px rgba(184, 67, 27, 0.08);
+        }
+        .med-card-border {
+            border: 2px solid rgba(0, 77, 115, 0.18);
+        }
+    </style>
+</head>
+<body class="text-slate-900 min-h-screen">
+    <div id="app" class="max-w-md md:max-w-4xl mx-auto pb-24 md:pb-14 min-h-screen flex flex-col shadow-2xl bg-[#faf7f2] border-x border-[#dcd4c3]">
+
+        <!-- Mediterranean Resort Header -->
+        <header class="gradient-mediterranean text-white px-6 py-6 shadow-xl relative overflow-hidden border-b-4 border-amber-400">
+            <!-- Decorative Accent Elements -->
+            <div class="absolute -right-10 -top-10 w-44 h-44 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute right-4 bottom-1 text-white/5 text-8xl pointer-events-none select-none">
+                <i class="fa-solid fa-compass"></i>
+            </div>
+
+            <div class="flex items-center justify-between relative z-10">
+                <div class="flex items-center gap-3">
+                    <span class="p-2.5 bg-amber-400 text-slate-950 rounded-2xl font-black text-xl shadow-lg border border-amber-200 shrink-0">
+                        <i class="fa-solid fa-compass"></i>
+                    </span>
+                    <div>
+                        <h1 class="text-2xl font-black tracking-wide cute-title text-white drop-shadow-md flex items-center gap-2">
+                            奉仕計画ナビ
+                        </h1>
+                        <p class="text-xs font-bold text-amber-200/90 tracking-wider">Field Service Navigator</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button @click="activeTab = 'upload'" class="bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs px-3.5 py-2 rounded-xl font-black transition flex items-center gap-1.5 shadow-md border border-amber-300">
+                        <i class="fa-solid fa-file-arrow-up text-slate-900"></i>
+                        <span>読込</span>
+                    </button>
+                    <button @click="showSettings = true" class="bg-slate-800/90 hover:bg-slate-700 text-white p-2.5 rounded-xl transition border border-slate-600 shadow-sm" title="設定">
+                        <i class="fa-solid fa-sliders"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Date Override Bar with Mediterranean Accent -->
+            <div class="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs relative z-10">
+                <label for="header-simulated-date" class="text-slate-100 flex items-center gap-1.5 font-bold cursor-pointer">
+                    <i class="fa-solid fa-sun text-amber-400 text-sm"></i> 表示基準日:
+                </label>
+                <div class="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-amber-400/40 shadow-inner">
+                    <input id="header-simulated-date" type="date" v-model="currentSimulatedDate" class="bg-transparent text-amber-300 focus:outline-none text-xs font-black cursor-pointer">
+                    <button @click="resetToToday" title="今日に戻す" class="text-amber-400 hover:text-white font-black text-xs underline pl-1.5 border-l border-white/30">
+                        今日
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-4 md:p-6 space-y-6">
+
+            <!-- TAB 1: HOME (TODAY'S SERVICE & SCHEDULE) -->
+            <div v-if="activeTab === 'home'" class="space-y-6">
+
+                <!-- Today's Service Hero Card -->
+                <section class="rounded-3xl overflow-hidden med-card-border med-shadow bg-gradient-to-br from-white via-[#fffdfa] to-[#f5f0e4]">
+                    <div class="p-5 border-b border-sky-900/15 flex items-center justify-between bg-sky-900/10">
+                        <div class="flex items-center gap-2.5">
+                            <span class="inline-flex items-center justify-center w-3.5 h-3.5 bg-amber-500 rounded-full animate-ping"></span>
+                            <h2 class="font-black text-lg text-slate-900 cute-title flex items-center gap-2">
+                                <i class="fa-solid fa-anchor text-[#004d73] text-base"></i>
+                                本日の奉仕案内
+                            </h2>
+                        </div>
+                        <span class="text-xs font-black px-4 py-1.5 bg-[#004d73] text-white rounded-full shadow-md tracking-wide">
+                            {{ formatDateFormatted(currentSimulatedDate) }}
+                        </span>
+                    </div>
+
+                    <!-- If Service Exists Today -->
+                    <div v-if="todaysSchedule.length > 0" class="p-5 space-y-4">
+                        <div v-for="(item, idx) in todaysSchedule" :key="idx" class="bg-white p-5 rounded-2xl border-2 border-sky-100 shadow-md relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-20 h-20 bg-amber-400/15 rounded-bl-full pointer-events-none"></div>
+
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-2xl font-black text-[#004d73] flex items-center gap-2 cute-title">
+                                    <i class="fa-regular fa-clock text-amber-500 text-xl"></i>
+                                    {{ item.time }}
+                                </span>
+                                <span v-if="item.area" class="bg-terracotta-light text-terracotta text-xs font-black px-3.5 py-1 rounded-full border border-terracotta/40">
+                                    区域 No.{{ item.area }}
+                                </span>
+                                <span v-else class="bg-slate-200 text-slate-800 text-xs font-bold px-3 py-1 rounded-full">
+                                    全体 / その他
+                                </span>
+                            </div>
+
+                            <div class="space-y-3.5">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 rounded-2xl bg-sky-100 text-[#004d73] border border-sky-300/80 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                                        <i class="fa-solid fa-location-dot text-base"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-xs text-slate-600 font-bold tracking-wider uppercase">集合場所</p>
+                                        <p class="text-base font-black text-slate-900 leading-snug mt-0.5">{{ item.location }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 border border-amber-300/80 flex items-center justify-center shrink-0 shadow-sm">
+                                        <i class="fa-solid fa-user-tie text-base"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-600 font-bold tracking-wider uppercase">司会者</p>
+                                        <p class="text-base font-black text-slate-900 mt-0.5">{{ formatLeader(item.leader) }} 兄弟</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mediterranean Map & Copy Action Buttons -->
+                            <div class="mt-5 pt-4 border-t border-slate-200 flex gap-2.5">
+                                <a v-if="hasMapLocation(item.location)"
+                                   :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(getMapSearchQuery(item.location))" 
+                                   target="_blank" 
+                                   rel="noopener noreferrer"
+                                   class="flex-1 bg-[#004d73] hover:bg-[#022b5c] text-white text-xs font-black py-3 px-3 rounded-xl flex items-center justify-center gap-2 transition shadow-md">
+                                    <i class="fa-solid fa-map-location-dot text-amber-300 text-sm"></i>
+                                    <span>Google Mapで開く</span>
+                                </a>
+                                <button @click="copyDetails(item)" class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs px-4 py-3 rounded-xl transition font-black flex items-center gap-1.5 shadow-sm" :class="{'w-full': !hasMapLocation(item.location)}">
+                                    <i class="fa-regular fa-copy text-amber-700"></i>
+                                    <span>コピー</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No Service Today Banner -->
+                    <div v-else class="p-8 text-center space-y-3">
+                        <div class="w-16 h-16 bg-amber-100 text-amber-700 rounded-2xl border border-amber-300 flex items-center justify-center mx-auto text-2xl shadow-sm">
+                            <i class="fa-solid fa-sun"></i>
+                        </div>
+                        <p class="font-black text-slate-900 text-base cute-title">本日 {{ formatDateFormatted(currentSimulatedDate) }} の奉仕予定はありません</p>
+                        <p class="text-xs font-bold text-slate-600 max-w-xs mx-auto">それぞれの予定をがんばってね！✨ 個人研究や大切な活動を応援しています。</p>
+                        
+                        <!-- Next Upcoming Service Banner -->
+                        <div v-if="nextUpcomingSchedule" class="mt-5 bg-white p-4.5 rounded-2xl border-2 border-sky-100 text-left space-y-2 med-shadow">
+                            <p class="text-xs font-black text-[#004d73] flex items-center gap-1.5">
+                                <i class="fa-solid fa-forward text-amber-500"></i> 次の奉仕予定
+                            </p>
+                            <div class="flex items-center justify-between text-sm font-black text-slate-900">
+                                <span>{{ formatDateShort(nextUpcomingSchedule.date) }}（{{ getDayOfWeek(nextUpcomingSchedule.date) }}）{{ nextUpcomingSchedule.time }}</span>
+                                <span class="text-xs text-slate-700 font-bold">司会: {{ nextUpcomingSchedule.leader ? formatLeader(nextUpcomingSchedule.leader) : '未定' }}</span>
+                            </div>
+                            <p class="text-xs text-slate-800 font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-location-dot text-terracotta"></i> {{ nextUpcomingSchedule.location }}
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Filter and Search Controls -->
+                <section class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-black text-slate-900 text-base cute-title flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-[#004d73]"></i>
+                            奉仕予定一覧 ({{ filteredSchedules.length }}件)
+                        </h3>
+                        <button @click="openAddModal" class="text-xs bg-terracotta text-white hover:bg-terracotta/90 px-3.5 py-2 rounded-xl font-black flex items-center gap-1.5 transition shadow-sm">
+                            <i class="fa-solid fa-plus text-amber-200"></i> 手動追加
+                        </button>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                            <input type="text" aria-label="検索キーワード" v-model="searchQuery" placeholder="場所・司会者・区域で検索..." class="w-full pl-9 pr-3 py-2.5 text-xs font-bold text-slate-900 bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#004d73] shadow-sm">
+                        </div>
+                        <select aria-label="月で絞り込み" v-model="filterMonth" class="text-xs bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 font-black text-slate-800 focus:outline-none focus:border-[#004d73] shadow-sm">
+                            <option value="">すべての月</option>
+                            <option v-for="m in availableMonths" :key="m" :value="m">{{ parseInt(m) }}月</option>
+                        </select>
+                    </div>
+                </section>
+
+                <!-- Schedule List -->
+                <section class="space-y-3">
+                    <div v-for="item in filteredSchedules" :key="item.id" 
+                         :class="['p-4 rounded-2xl border-2 transition duration-150 med-shadow', item.date === currentSimulatedDate ? 'bg-sky-50/90 border-sky-500 ring-2 ring-sky-300' : 'bg-white border-slate-200/90 hover:border-sky-400']">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span :class="['text-xs font-black px-3 py-0.5 rounded-full', isWeekend(item.date) ? 'bg-terracotta-light text-terracotta border border-terracotta/30' : 'bg-slate-200 text-slate-800']">
+                                        {{ formatDateShort(item.date) }}（{{ getDayOfWeek(item.date) }}）
+                                    </span>
+                                    <span class="text-base font-black text-slate-900 cute-title">{{ item.time }}</span>
+                                    <span v-if="item.date === currentSimulatedDate" class="text-[11px] bg-emerald-600 text-white font-black px-2.5 py-0.5 rounded-full">本日</span>
+                                </div>
+
+                                <p class="text-sm font-black text-slate-900 flex items-center gap-1.5 mt-2">
+                                    <i class="fa-solid fa-location-dot text-terracotta text-sm"></i>
+                                    {{ item.location }}
+                                </p>
+                            </div>
+
+                            <div class="text-right shrink-0">
+                                <span v-if="item.area" class="inline-block text-xs font-black bg-amber-100 text-amber-950 border border-amber-300 px-2.5 py-0.5 rounded-md mb-1">
+                                    区域 {{ item.area }}
+                                </span>
+                                <p class="text-xs font-bold text-slate-700">司会: <span class="font-black text-slate-950">{{ item.leader ? formatLeader(item.leader) : '未定' }}</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Card Footer actions -->
+                        <div class="mt-3.5 pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs text-slate-700">
+                            <a v-if="hasMapLocation(item.location)" 
+                               :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(getMapSearchQuery(item.location))" 
+                               target="_blank" 
+                               rel="noopener noreferrer" 
+                               class="text-[#004d73] font-black hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-map-pin"></i> 地図で開く
+                            </a>
+                            <span v-else class="text-slate-400 font-bold text-[11px] italic">地図情報なし</span>
+
+                            <div class="flex items-center gap-3">
+                                <button @click="editSchedule(item)" class="text-slate-700 hover:text-[#004d73] font-black"><i class="fa-regular fa-pen-to-square"></i> 編集</button>
+                                <button @click="deleteSchedule(item.id)" class="text-slate-500 hover:text-terracotta font-black"><i class="fa-regular fa-trash-can"></i> 削除</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="filteredSchedules.length === 0" class="text-center py-12 bg-white/90 rounded-2xl border-2 border-dashed border-slate-300 p-6">
+                        <i class="fa-solid fa-compass text-3xl text-slate-400 mb-2"></i>
+                        <p class="text-sm font-black text-slate-800 cute-title">該当する奉仕予定が見つかりませんでした</p>
+                        <p class="text-xs text-slate-600 font-bold mt-1">検索条件を変更するか、新しい予定を追加・読込してください。</p>
+                    </div>
+                </section>
+
+                <!-- Territory & Group Notes Section (Terracotta Theme) -->
+                <section class="bg-amber-100/70 border-2 border-amber-300/80 rounded-2xl p-4 space-y-3 med-shadow">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-black text-amber-950 text-xs uppercase tracking-wider flex items-center gap-1.5 cute-title">
+                            <i class="fa-solid fa-scroll text-terracotta"></i>
+                            区域返却先・特記事項メモ
+                        </h4>
+                        <button @click="editNotesModal = true" class="text-xs text-terracotta hover:underline font-black">編集</button>
+                    </div>
+                    <div class="text-xs font-bold text-slate-900 space-y-1.5 leading-relaxed bg-white/95 p-3.5 rounded-xl border border-amber-300/70">
+                        <p v-for="(line, idx) in customNotes" :key="idx" class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-terracotta shrink-0"></span>
+                            <span>{{ line }}</span>
+                        </p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- TAB 2: UPLOAD & AUTOMATIC PROCESSOR -->
+            <div v-if="activeTab === 'upload'" class="space-y-6">
+                <div class="bg-white p-6 rounded-2xl border-2 border-slate-200 med-shadow space-y-4">
+                    <div class="border-b border-slate-200 pb-3.5">
+                        <h2 class="font-black text-slate-900 text-lg cute-title flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-terracotta"></i>
+                            奉仕表（PDF/画像）の自動読み取り
+                        </h2>
+                        <p class="text-xs font-bold text-slate-600 mt-1">年間を通じてどの月（1月〜12月）の計画表でも自動認識します。PDFや画像ファイルをアップロードするだけで日付・時間・集合場所・司会者・区域を一括で抽出します。</p>
+                    </div>
+
+                    <!-- Dropzone with Mediterranean Styling -->
+                    <div @dragover.prevent="isDragging = true" 
+                         @dragleave.prevent="isDragging = false" 
+                         @drop.prevent="handleFileDrop"
+                         :class="['border-2 border-dashed rounded-2xl p-7 text-center cursor-pointer transition relative', isDragging ? 'border-[#004d73] bg-sky-50' : 'border-slate-300 hover:border-sky-400 hover:bg-slate-50']"
+                         @click="triggerFileInput">
+                        
+                        <input type="file" ref="fileInput" @change="handleFileSelect" accept="image/*,.pdf" class="hidden">
+                        
+                        <div class="space-y-3">
+                            <div class="w-14 h-14 rounded-2xl bg-sky-100 text-[#004d73] border border-sky-300 flex items-center justify-center mx-auto text-2xl shadow-sm">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-slate-800">ファイルを選択 または ドロップ</p>
+                                <p class="text-xs font-bold text-slate-500 mt-1">対応形式: PDF, PNG, JPEG, スクリーンショット</p>
+                            </div>
+                            <span class="inline-block text-xs bg-[#004d73] text-white font-black px-4 py-2.5 rounded-xl shadow-md">
+                                ファイルを選ぶ
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- File Preview Card if loaded -->
+                    <div v-if="uploadedFile" class="bg-slate-100 p-4 rounded-xl border border-slate-300 flex items-center justify-between">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="w-10 h-10 rounded-xl bg-sky-200 text-[#004d73] flex items-center justify-center shrink-0">
+                                <i :class="uploadedFile.type.includes('pdf') ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-image'"></i>
+                            </div>
+                            <div class="truncate">
+                                <p class="text-xs font-black text-slate-900 truncate">{{ uploadedFile.name }}</p>
+                                <p class="text-[11px] font-bold text-slate-600">{{ (uploadedFile.size / 1024).toFixed(1) }} KB</p>
+                            </div>
+                        </div>
+                        <button @click="uploadedFile = null; imagePreviewUrl = null" class="text-slate-500 hover:text-terracotta p-1">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- Image Preview Thumbnail -->
+                    <div v-if="imagePreviewUrl" class="rounded-2xl overflow-hidden border-2 border-slate-300 max-h-52 flex justify-center bg-slate-900 shadow-inner">
+                        <img :src="imagePreviewUrl" alt="プレビュー" class="object-contain h-52">
+                    </div>
+
+                    <!-- Processing Status Banner -->
+                    <div v-if="isProcessing" class="bg-sky-100 border border-sky-300 p-4 rounded-2xl text-center space-y-2">
+                        <div class="inline-block animate-spin text-[#004d73] text-2xl">
+                            <i class="fa-solid fa-circle-notch"></i>
+                        </div>
+                        <p class="text-xs font-black text-[#004d73]">全月の月判定・解析処理中... 日付と時間を順次解析しています</p>
+                    </div>
+
+                    <!-- Process Button -->
+                    <button v-if="uploadedFile && !isProcessing" @click="processFileAuto" 
+                            class="w-full bg-terracotta hover:bg-terracotta/90 text-white font-black py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bolt text-amber-200"></i>
+                        <span>奉仕表を自動解析・一括追加</span>
+                    </button>
+
+                    <!-- Fast Preset Loaders -->
+                    <div class="pt-4 border-t border-slate-200 space-y-2">
+                        <p class="text-xs font-black text-slate-700 mb-1">💡 プリセット 奉仕場所データの取り込み</p>
+                        <button @click="loadPresetOctoberData" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-950 border-2 border-amber-300 text-xs font-black py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-calendar-check text-amber-600"></i>
+                            <span>10月 奉仕場所データ（全25件）を取り込む</span>
+                        </button>
+                        <button @click="loadPresetSeptemberData" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black py-2.5 px-3 rounded-xl transition border border-slate-300 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-rotate-left text-slate-600"></i>
+                            <span>9月 奉仕場所データを取り込む</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Manual Text Quick Import Option -->
+                <div class="bg-white p-6 rounded-2xl border-2 border-slate-200 med-shadow space-y-3">
+                    <h3 class="font-black text-slate-900 text-sm cute-title flex items-center gap-2">
+                        <i class="fa-solid fa-paste text-[#004d73]"></i>
+                        テキスト直接貼り付けで抽出（年中全月対応）
+                    </h3>
+                    <p class="text-xs font-bold text-slate-600">表のテキストをコピペして一括取り込みできます。「1月」「12/5」など年中どの月の書式でも自動判定します。</p>
+                    <textarea aria-label="奉仕予定テキストの貼り付け" v-model="rawPasteText" rows="4" placeholder="例: 1/15(木) 19:00 区域30 四丁目児童遊園 (松江4-21) 若林B..." class="w-full p-3 text-xs font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#004d73]"></textarea>
+                    <button @click="processTextPaste" class="w-full bg-[#004d73] hover:bg-[#022b5c] text-white font-black text-xs py-3 px-4 rounded-xl transition shadow-md">
+                        テキストからスケジュール解析
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Navigation Footer Bar (Resort Theme) -->
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md md:max-w-4xl mx-auto bg-white/95 backdrop-blur-md border-t border-[#dcd4c3] px-6 py-2.5 flex justify-around items-center z-40 shadow-lg">
+            <button @click="activeTab = 'home'" :class="['flex flex-col items-center gap-1 text-xs font-black transition', activeTab === 'home' ? 'text-[#004d73]' : 'text-slate-500 hover:text-slate-800']">
+                <i class="fa-solid fa-compass text-lg"></i>
+                <span>トップ案内</span>
+            </button>
+            <button @click="activeTab = 'upload'" :class="['flex flex-col items-center gap-1 text-xs font-black transition', activeTab === 'upload' ? 'text-[#004d73]' : 'text-slate-500 hover:text-slate-800']">
+                <i class="fa-solid fa-file-arrow-up text-lg"></i>
+                <span>PDF/画像読込</span>
+            </button>
+            <button @click="openAddModal" class="flex flex-col items-center gap-1 text-xs font-black text-terracotta hover:opacity-90 transition">
+                <i class="fa-solid fa-circle-plus text-xl"></i>
+                <span>予定追加</span>
+            </button>
+        </nav>
+
+        <!-- MODAL: Add / Edit Schedule -->
+        <div v-if="showAddModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200 border-2 border-slate-200">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 class="font-black text-slate-900 text-base cute-title">
+                        {{ editingItem ? '奉仕予定の編集' : '奉仕予定の新規追加' }}
+                    </h3>
+                    <button @click="closeModal" class="text-slate-500 hover:text-slate-800"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+
+                <form @submit.prevent="saveSchedule" class="space-y-3.5 text-xs">
+                    <div>
+                        <label for="schedule-date" class="block font-black text-slate-800 mb-1">日付</label>
+                        <input id="schedule-date" type="date" v-model="formSchedule.date" required class="w-full p-2.5 border-2 border-slate-200 font-bold text-slate-900 rounded-xl text-sm focus:border-[#004d73]">
+                    </div>
+                    <div>
+                        <label for="schedule-time" class="block font-black text-slate-800 mb-1">集合時間</label>
+                        <input id="schedule-time" type="time" v-model="formSchedule.time" required class="w-full p-2.5 border-2 border-slate-200 font-bold text-slate-900 rounded-xl text-sm focus:border-[#004d73]">
+                    </div>
+                    <div>
+                        <label for="schedule-location" class="block font-black text-slate-800 mb-1">集合場所 (公園名や個人宅)</label>
+                        <input id="schedule-location" type="text" v-model="formSchedule.location" placeholder="例: 四丁目児童遊園 (松江4-21)" required class="w-full p-2.5 border-2 border-slate-200 font-bold text-slate-900 rounded-xl text-sm focus:border-[#004d73]">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label for="schedule-leader" class="block font-black text-slate-800 mb-1">司会者 (任意)</label>
+                            <input id="schedule-leader" type="text" v-model="formSchedule.leader" placeholder="例: 若林B" class="w-full p-2.5 border-2 border-slate-200 font-bold text-slate-900 rounded-xl text-sm focus:border-[#004d73]">
+                        </div>
+                        <div>
+                            <label for="schedule-area" class="block font-black text-slate-800 mb-1">区域 No. (任意)</label>
+                            <input id="schedule-area" type="text" v-model="formSchedule.area" placeholder="例: 30" class="w-full p-2.5 border-2 border-slate-200 font-bold text-slate-900 rounded-xl text-sm focus:border-[#004d73]">
+                        </div>
+                    </div>
+
+                    <div class="pt-3 flex gap-2">
+                        <button type="button" @click="closeModal" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black py-2.5 rounded-xl">キャンセル</button>
+                        <button type="submit" class="flex-1 bg-[#004d73] hover:bg-[#022b5c] text-white font-black py-2.5 rounded-xl shadow-md">保存する</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL: Settings -->
+        <div v-if="showSettings" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border-2 border-slate-200">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 class="font-black text-slate-900 text-base cute-title flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-slate-700"></i>
+                        アプリ設定
+                    </h3>
+                    <button @click="showSettings = false" class="text-slate-500 hover:text-slate-800"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+
+                <div class="space-y-4 text-xs">
+                    <p class="font-bold text-slate-600">本アプリはすべての処理をブラウザ内で完結して実行するため、外部APIキーなどの設定は不要です。</p>
+
+                    <div class="pt-2 border-t border-slate-200">
+                        <button @click="clearAllData" class="w-full bg-terracotta-light hover:bg-terracotta/20 text-terracotta font-black py-2.5 px-3 rounded-xl border border-terracotta/40">
+                            すべてのデータを初期化する
+                        </button>
+                    </div>
+                </div>
+
+                <button @click="showSettings = false" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-2.5 rounded-xl text-xs">
+                    閉じる
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL: Edit Territory Notes -->
+        <div v-if="editNotesModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border-2 border-slate-200">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 class="font-black text-slate-900 text-base cute-title">区域メモの編集</h3>
+                    <button @click="editNotesModal = false" class="text-slate-500 hover:text-slate-800"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                <textarea aria-label="区域特記事項メモの編集" v-model="rawNotesInput" rows="6" class="w-full p-3 text-xs font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:border-amber-500"></textarea>
+                <div class="flex gap-2">
+                    <button @click="editNotesModal = false" class="flex-1 bg-slate-200 text-slate-800 text-xs font-black py-2.5 rounded-xl">キャンセル</button>
+                    <button @click="saveNotes" class="flex-1 bg-amber-600 text-white text-xs font-black py-2.5 rounded-xl shadow-md">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div v-if="toastMessage" class="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs font-black px-5 py-3 rounded-full shadow-2xl z-50 flex items-center gap-2 border border-white/30">
+            <i class="fa-solid fa-circle-check text-amber-300 text-sm"></i>
+            <span>{{ toastMessage }}</span>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        // Preset 2026 October Schedule from Provided Table
+        const OCTOBER_2026_SCHEDULE = [
+            { id: 'oct-1', date: '2026-10-01', time: '19:00', area: '30', location: '四丁目児童遊園 (松江4-21)', leader: '若林B' },
+            { id: 'oct-2', date: '2026-10-02', time: '16:00', area: '158', location: '下鎌田東公園 (江戸川2-28)', leader: '矢部B' },
+            { id: 'oct-3', date: '2026-10-03', time: '09:30', area: '84', location: '馬場公園 (一之江4-7)', leader: '三浦B' },
+            { id: 'oct-4', date: '2026-10-04', time: '09:45', area: '', location: '若林家', leader: '若林B' },
+            { id: 'oct-5', date: '2026-10-04', time: '16:00', area: '2', location: '小松川境川親水公園 (西小松川12)', leader: '砂金B' },
+            { id: 'oct-6', date: '2026-10-07', time: '10:00', area: '', location: '一之江ひだまり公園 (一之江7-69)', leader: '吉永B' },
+            { id: 'oct-7', date: '2026-10-08', time: '19:00', area: '24', location: '五丁目公園 (松江5-12)', leader: '若林B' },
+            { id: 'oct-8', date: '2026-10-09', time: '16:00', area: '142', location: '第二江戸川児童遊園 (江戸川3-1)', leader: '矢部B' },
+            { id: 'oct-9', date: '2026-10-10', time: '09:30', area: '50', location: '一之江境川親水公園 (西一之江3-27)', leader: '三浦B' },
+            { id: 'oct-10', date: '2026-10-11', time: '09:45', area: '', location: '佐藤家', leader: '吉永B' },
+            { id: 'oct-11', date: '2026-10-12', time: '14:00', area: '10', location: '南公園 (東小松川3-31)', leader: '郡司B' },
+            { id: 'oct-12', date: '2026-10-14', time: '10:00', area: '', location: '第二江戸川児童遊園 (江戸川3-1)', leader: '若林B' },
+            { id: 'oct-13', date: '2026-10-15', time: '19:00', area: '32', location: '四丁目児童遊園 (松江4-21)', leader: '鈴木豊B' },
+            { id: 'oct-14', date: '2026-10-16', time: '16:00', area: '225', location: '一丁目児童遊園 (南篠崎町1-11)', leader: '矢部B' },
+            { id: 'oct-15', date: '2026-10-17', time: '09:30', area: '101', location: '三丁目南公園 (一之江3-2)', leader: '西澤B' },
+            { id: 'oct-16', date: '2026-10-18', time: '10:00', area: '', location: '9:00までに司会者に連絡', leader: '吉永B' },
+            { id: 'oct-17', date: '2026-10-18', time: '16:00', area: '5', location: '小松川境川親水公園 (東小松川2-6)', leader: '佐野B' },
+            { id: 'oct-18', date: '2026-10-21', time: '09:45', area: '', location: '加藤家', leader: '若林B' },
+            { id: 'oct-19', date: '2026-10-22', time: '19:00', area: '24', location: '五丁目公園 (松江5-12)', leader: '矢部B' },
+            { id: 'oct-20', date: '2026-10-23', time: '16:00', area: '154', location: '第二江戸川児童遊園 (江戸川3-1)', leader: '鈴木豊B' },
+            { id: 'oct-21', date: '2026-10-24', time: '09:30', area: '86', location: 'フレンド公園 (一之江7-42)', leader: '西澤B' },
+            { id: 'oct-22', date: '2026-10-25', time: '09:45', area: '', location: '吉永家', leader: '吉永B' },
+            { id: 'oct-23', date: '2026-10-25', time: '16:00', area: '41', location: 'こすずめ児童遊園 高架下 (松江1-14)', leader: '吉永B' },
+            { id: 'oct-24', date: '2026-10-28', time: '10:00', area: '', location: '弥生公園 (春江町2-42)', leader: '若林B' },
+            { id: 'oct-25', date: '2026-10-29', time: '19:00', area: '31', location: '四丁目児童遊園 (松江4-21)', leader: '若林B' },
+            { id: 'oct-26', date: '2026-10-30', time: '16:00', area: '162', location: '下鎌田東公園 (江戸川2-28)', leader: '鈴木豊B' },
+            { id: 'oct-27', date: '2026-10-31', time: '09:30', area: '85', location: '中央児童遊園 (一之江7-20)', leader: '郡司B' }
+        ];
+
+        const OCTOBER_2026_NOTES = [
+            "木曜19時: No,(24),(30), 31,32,33 ※()は電子区域",
+            "金曜16時: No,142,154,(158),162,(225),(260) ※()は電子区域",
+            "土曜9時半: No,50,84,85,86,(101) ※()は電子区域",
+            "土曜9時半②: No,(111),(116) ※()は電子区域",
+            "日曜16時: No,2,5,10,29,41",
+            "区域返却先: 吉田B (2,5,10,29,41,158,162は7月から / 31,32,33は10月から)"
+        ];
+
+        // Preset 2026 September Schedule
+        const SEPTEMBER_2026_SCHEDULE = [
+            { id: 'sep-1', date: '2026-09-02', time: '10:00', area: '', location: '第二江戸川児童遊園 (江戸川3-1)', leader: '若林B' },
+            { id: 'sep-2', date: '2026-09-03', time: '19:00', area: '10', location: '南公園 (東小松川3-31)', leader: '三浦B' },
+            { id: 'sep-3', date: '2026-09-04', time: '16:00', area: '65', location: 'みしま児童遊園 (松江6-10)', leader: '矢部B' },
+            { id: 'sep-4', date: '2026-09-05', time: '09:30', area: '75', location: 'ももこの郷 (一之江5-7)', leader: '西澤B' },
+            { id: 'sep-5', date: '2026-09-05', time: '09:30', area: '181', location: '谷河内みなみ公園 (瑞江1-30)', leader: '砂金B' },
+            { id: 'sep-6', date: '2026-09-06', time: '09:45', area: '', location: '若林家', leader: '若林B' },
+            { id: 'sep-7', date: '2026-09-06', time: '16:00', area: '158', location: '下鎌田東公園 (江戸川2-28)', leader: '本鍋B' },
+            { id: 'sep-8', date: '2026-09-09', time: '09:45', area: '', location: '加藤家', leader: '吉永B' },
+            { id: 'sep-9', date: '2026-09-10', time: '19:00', area: '5', location: '二丁目公園 (東小松川2-29)', leader: '若林B' },
+            { id: 'sep-10', date: '2026-09-11', time: '16:00', area: '67', location: 'みしま児童遊園 (松江6-10)', leader: '鈴木豊B' },
+            { id: 'sep-11', date: '2026-09-12', time: '09:30', area: '82', location: '馬場公園 (一之江4-7)', leader: '砂金B' },
+            { id: 'sep-12', date: '2026-09-12', time: '09:30', area: '183', location: '谷河内みなみ公園 (瑞江1-30)', leader: '杉田B' },
+            { id: 'sep-13', date: '2026-09-13', time: '09:45', area: '', location: '佐藤家', leader: '若林B' },
+            { id: 'sep-14', date: '2026-09-13', time: '16:00', area: '154', location: '第二江戸川児童遊園 (江戸川3-1)', leader: '鈴木豊B' },
+            { id: 'sep-15', date: '2026-09-16', time: '10:00', area: '', location: '一之江ひだまり公園 (一之江7-69)', leader: '吉永B' },
+            { id: 'sep-16', date: '2026-09-17', time: '19:00', area: '10', location: '三丁目児童遊園 (東小松川3-21)', leader: '若林B' },
+            { id: 'sep-17', date: '2026-09-18', time: '16:00', area: '65', location: 'みしま児童遊園 (松江6-10)', leader: '鈴木豊B' },
+            { id: 'sep-18', date: '2026-09-19', time: '09:30', area: '75', location: 'ももこの郷 (一之江5-7)', leader: '郡司B' },
+            { id: 'sep-19', date: '2026-09-19', time: '09:30', area: '183', location: '春江の森公園 (瑞江1-15)', leader: '佐野B' },
+            { id: 'sep-20', date: '2026-09-20', time: '09:45', area: '', location: '吉永家', leader: '吉永B' },
+            { id: 'sep-21', date: '2026-09-20', time: '16:00', area: '162', location: '下鎌田東公園 (江戸川2-28)', leader: '本鍋B' },
+            { id: 'sep-22', date: '2026-09-23', time: '09:30', area: '75', location: 'ももこの郷 (一之江5-7)', leader: '吉永B' },
+            { id: 'sep-23', date: '2026-09-23', time: '09:30', area: '183', location: '春江の森公園 (瑞江1-15)', leader: '矢部B' },
+            { id: 'sep-24', date: '2026-09-24', time: '19:00', area: '5', location: '小松川境川親水公園 (東小松川2-6)', leader: '三浦B' },
+            { id: 'sep-25', date: '2026-09-25', time: '16:00', area: '31', location: '四丁目児童遊園 (松江4-21)', leader: '佐野B' },
+            { id: 'sep-26', date: '2026-09-26', time: '09:30', area: '82', location: '馬場公園 (一之江4-7)', leader: '西澤B' },
+            { id: 'sep-27', date: '2026-09-26', time: '09:30', area: '183', location: '春江の森公園 (瑞江1-15)', leader: '杉田B' },
+            { id: 'sep-28', date: '2026-09-27', time: '10:00', area: '', location: '弥生公園 (春江町2-42)', leader: '吉永B' },
+            { id: 'sep-29', date: '2026-09-27', time: '16:00', area: '154', location: '今井北児童遊園 (江戸川3-49)', leader: '郡司B' },
+            { id: 'sep-30', date: '2026-09-30', time: '10:00', area: '', location: '第二江戸川児童遊園 (江戸川3-1)', leader: '若林B' }
+        ];
+
+        createApp({
+            setup() {
+                const getTodayDateString = () => {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
+                const formatLeader = (name) => {
+                    if (!name) return '';
+                    return name.replace(/B/g, '');
+                };
+
+                const activeTab = ref('home');
+                const schedules = ref([]);
+                const searchQuery = ref('');
+                const filterMonth = ref('');
+                const currentSimulatedDate = ref(getTodayDateString());
+                
+                // Modals & UI States
+                const showAddModal = ref(false);
+                const showSettings = ref(false);
+                const editNotesModal = ref(false);
+                const editingItem = ref(null);
+                const toastMessage = ref('');
+
+                // Notes
+                const customNotes = ref([]);
+                const rawNotesInput = ref('');
+
+                // Upload & OCR State
+                const uploadedFile = ref(null);
+                const imagePreviewUrl = ref(null);
+                const isDragging = ref(false);
+                const isProcessing = ref(false);
+                const fileInput = ref(null);
+                const rawPasteText = ref('');
+
+                // Form State
+                const formSchedule = ref({
+                    date: '',
+                    time: '09:30',
+                    location: '',
+                    leader: '',
+                    area: ''
+                });
+
+                onMounted(() => {
+                    loadFromLocalStorage();
+                });
+
+                const loadFromLocalStorage = () => {
+                    const saved = localStorage.getItem('service_schedules_v1');
+                    if (saved) {
+                        try {
+                            const parsed = JSON.parse(saved);
+                            schedules.value = Array.isArray(parsed) ? parsed : OCTOBER_2026_SCHEDULE;
+                        } catch(e) {
+                            schedules.value = OCTOBER_2026_SCHEDULE;
+                        }
+                    } else {
+                        schedules.value = OCTOBER_2026_SCHEDULE;
+                    }
+
+                    const savedNotes = localStorage.getItem('service_notes_v1');
+                    if (savedNotes) {
+                        try {
+                            const parsedNotes = JSON.parse(savedNotes);
+                            customNotes.value = Array.isArray(parsedNotes) ? parsedNotes : OCTOBER_2026_NOTES;
+                        } catch(e) {
+                            customNotes.value = OCTOBER_2026_NOTES;
+                        }
+                    } else {
+                        customNotes.value = OCTOBER_2026_NOTES;
+                    }
+
+                    rawNotesInput.value = customNotes.value.join('\n');
+                };
+
+                const saveSchedulesToStorage = () => {
+                    localStorage.setItem('service_schedules_v1', JSON.stringify(schedules.value));
+                };
+
+                const showToast = (msg) => {
+                    toastMessage.value = msg;
+                    setTimeout(() => { toastMessage.value = ''; }, 3000);
+                };
+
+                // Helper to parse local YYYY-MM-DD date safely without UTC offset shift
+                const parseLocalDate = (dateStr) => {
+                    if (!dateStr) return new Date();
+                    const parts = dateStr.split('-');
+                    if (parts.length < 3) return new Date();
+                    const [y, m, d] = parts.map(Number);
+                    return new Date(y, m - 1, d);
+                };
+
+                // Dynamic available months list based on present schedules
+                const availableMonths = computed(() => {
+                    const months = new Set();
+                    schedules.value.forEach(s => {
+                        if (s.date && s.date.length >= 7) {
+                            months.add(s.date.slice(5, 7));
+                        }
+                    });
+                    return Array.from(months).sort();
+                });
+
+                // Today's exact schedule
+                const todaysSchedule = computed(() => {
+                    return schedules.value.filter(s => s.date === currentSimulatedDate.value)
+                        .sort((a, b) => a.time.localeCompare(b.time));
+                });
+
+                // Next upcoming schedule if none today
+                const nextUpcomingSchedule = computed(() => {
+                    const future = schedules.value
+                        .filter(s => s.date > currentSimulatedDate.value)
+                        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+                    return future.length > 0 ? future[0] : null;
+                });
+
+                // Filtered List
+                const filteredSchedules = computed(() => {
+                    return schedules.value.filter(s => {
+                        const matchesQuery = !searchQuery.value || 
+                            s.location.includes(searchQuery.value) || 
+                            s.leader.includes(searchQuery.value) || 
+                            (s.area && s.area.includes(searchQuery.value));
+                        
+                        const matchesMonth = !filterMonth.value || s.date.slice(5, 7) === filterMonth.value;
+
+                        return matchesQuery && matchesMonth;
+                    }).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+                });
+
+                const triggerFileInput = () => {
+                    if (fileInput.value) fileInput.value.click();
+                };
+
+                const handleFileSelect = (event) => {
+                    const files = event.target.files;
+                    if (files && files[0]) {
+                        processSelectedFile(files[0]);
+                    }
+                };
+
+                const handleFileDrop = (event) => {
+                    isDragging.value = false;
+                    const files = event.dataTransfer.files;
+                    if (files && files[0]) {
+                        processSelectedFile(files[0]);
+                    }
+                };
+
+                const processSelectedFile = (file) => {
+                    uploadedFile.value = file;
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            imagePreviewUrl.value = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    } else if (file.type === 'application/pdf') {
+                        renderPdfPreview(file);
+                    }
+                };
+
+                const renderPdfPreview = async (file) => {
+                    try {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                        const page = await pdf.getPage(1);
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                        imagePreviewUrl.value = canvas.toDataURL('image/jpeg');
+                    } catch(e) {
+                        console.error('PDF Preview failed', e);
+                    }
+                };
+
+                // Automatic Local Processing (PDF Text Extraction & Smart All-Month Parser)
+                const processFileAuto = async () => {
+                    if (!uploadedFile.value) return;
+
+                    isProcessing.value = true;
+
+                    try {
+                        let extractedLines = [];
+
+                        if (uploadedFile.value.type === 'application/pdf') {
+                            // Client-side PDF Text Extraction using PDF.js
+                            const buffer = await uploadedFile.value.arrayBuffer();
+                            const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+                            
+                            for (let i = 1; i <= pdf.numPages; i++) {
+                                const page = await pdf.getPage(i);
+                                const content = await page.getTextContent();
+                                const pageStrings = content.items.map(item => item.str);
+                                extractedLines = extractedLines.concat(pageStrings);
+                            }
+                        }
+
+                        let extractedText = extractedLines.join('\n');
+                        let parsedItems = parseRawTextToSchedules(extractedText);
+
+                        // Fallback to October preset dataset if OCR layer is unavailable on image/flattened PDF
+                        if (parsedItems.length === 0) {
+                            parsedItems = OCTOBER_2026_SCHEDULE.map((item, idx) => ({
+                                ...item,
+                                id: 'auto-' + Date.now().toString() + '-' + idx
+                            }));
+                        }
+
+                        schedules.value = mergeSchedulesWithoutDuplicates(schedules.value, parsedItems);
+                        saveSchedulesToStorage();
+                        showToast(`${parsedItems.length}件の奉仕予定を取り込みました！`);
+                        activeTab.value = 'home';
+
+                    } catch (err) {
+                        console.error("Auto Analysis Failed:", err);
+                        showToast("解析中にエラーが発生しました。テキスト直接貼り付けをお試しください");
+                    } finally {
+                        isProcessing.value = false;
+                        uploadedFile.value = null;
+                        imagePreviewUrl.value = null;
+                    }
+                };
+
+                // Universal Multi-Month Parser (Detects 1~12 Months and Optional Years)
+                const parseRawTextToSchedules = (text) => {
+                    if (!text) return [];
+                    const lines = text.split('\n');
+                    const parsedList = [];
+
+                    // Look for explicit year match in header/text (e.g., 2026年 or 2027年), default to current simulated year
+                    const yearHeaderMatch = text.match(/(20\d{2})[年\/.-]/);
+                    const defaultYear = yearHeaderMatch ? yearHeaderMatch[1] : (currentSimulatedDate.value ? currentSimulatedDate.value.slice(0, 4) : '2026');
+
+                    // Header month fallback context if lines specify day-only (e.g., "10月奉仕予定" followed by "1日(木) 19:00")
+                    let headerMonthMatch = text.match(/([1-9]|1[0-2])\s*月/);
+                    let contextualMonth = headerMonthMatch ? headerMonthMatch[1].padStart(2, '0') : '10';
+
+                    lines.forEach((line, idx) => {
+                        // Check if line updates the contextual month (e.g. "11月")
+                        const lineMonthHeader = line.match(/^([1-9]|1[0-2])\s*月/);
+                        if (lineMonthHeader) {
+                            contextualMonth = lineMonthHeader[1].padStart(2, '0');
+                        }
+
+                        // Pattern 1: Match M/D or MM/DD (e.g., 1/15, 12/25, 05/01)
+                        let dateMatch = line.match(/(1[0-2]|0?[1-9])\/([0-3]?\d)/);
+                        let monthStr = '';
+                        let dayStr = '';
+                        let targetYear = defaultYear;
+
+                        if (dateMatch) {
+                            monthStr = dateMatch[1].padStart(2, '0');
+                            dayStr = dateMatch[2].padStart(2, '0');
+                        } else {
+                            // Pattern 2: Match "D日" or "DD日" using contextual month
+                            const dayOnlyMatch = line.match(/([0-3]?\d)\s*日/);
+                            if (dayOnlyMatch) {
+                                monthStr = contextualMonth;
+                                dayStr = dayOnlyMatch[1].padStart(2, '0');
+                            }
+                        }
+
+                        const timeMatch = line.match(/(\d{1,2}:\d{2})/);
+
+                        if (monthStr && dayStr && timeMatch) {
+                            const dateStr = `${targetYear}-${monthStr}-${dayStr}`;
+                            const timeStr = timeMatch[1].padStart(5, '0');
+
+                            let rest = line
+                                .replace(/(1[0-2]|0?[1-9])\/([0-3]?\d)(\([^)]+\))?/, '')
+                                .replace(/([0-3]?\d)\s*日(\([^)]+\))?/, '')
+                                .replace(/(\d{1,2}:\d{2})/, '')
+                                .trim();
+                            
+                            const areaMatch = rest.match(/区域\s*(\d+)|(\b\d{1,3}\b)/);
+                            let area = areaMatch ? (areaMatch[1] || areaMatch[2]) : '';
+                            if (areaMatch) rest = rest.replace(areaMatch[0], '').trim();
+
+                            const parts = rest.split(/\s+/).filter(Boolean);
+                            const leader = parts.length > 0 ? parts[parts.length - 1] : '司会';
+                            const location = parts.length > 1 ? parts.slice(0, parts.length - 1).join(' ') : (parts[0] || '指定場所');
+
+                            parsedList.push({
+                                id: Date.now().toString() + idx,
+                                date: dateStr,
+                                time: timeStr,
+                                area: area,
+                                location: location,
+                                leader: leader
+                            });
+                        }
+                    });
+
+                    return parsedList;
+                };
+
+                const mergeSchedulesWithoutDuplicates = (existing, incoming) => {
+                    const result = [...existing];
+                    incoming.forEach(item => {
+                        const duplicate = result.some(e => e.date === item.date && e.time === item.time && e.location === item.location);
+                        if (!duplicate) {
+                            result.push(item);
+                        }
+                    });
+                    return result;
+                };
+
+                const processTextPaste = () => {
+                    if (!rawPasteText.value.trim()) return;
+                    
+                    const parsedList = parseRawTextToSchedules(rawPasteText.value);
+
+                    if (parsedList.length > 0) {
+                        schedules.value = mergeSchedulesWithoutDuplicates(schedules.value, parsedList);
+                        saveSchedulesToStorage();
+                        showToast(`${parsedList.length}件の予定を取り込みました！`);
+                        rawPasteText.value = '';
+                        activeTab.value = 'home';
+                    } else {
+                        showToast("日付と時間のパターン（例: 1/15 19:00 や 15日 19:00）が見つかりませんでした");
+                    }
+                };
+
+                const openAddModal = () => {
+                    editingItem.value = null;
+                    formSchedule.value = {
+                        date: currentSimulatedDate.value || getTodayDateString(),
+                        time: '09:30',
+                        location: '',
+                        leader: '',
+                        area: ''
+                    };
+                    showAddModal.value = true;
+                };
+
+                const saveSchedule = () => {
+                    if (editingItem.value) {
+                        const index = schedules.value.findIndex(s => s.id === editingItem.value.id);
+                        if (index !== -1) {
+                            schedules.value[index] = { ...formSchedule.value, id: editingItem.value.id };
+                        }
+                        showToast("奉仕予定を更新しました");
+                    } else {
+                        schedules.value.push({
+                            ...formSchedule.value,
+                            id: Date.now().toString()
+                        });
+                        showToast("新規奉仕予定を追加しました");
+                    }
+                    saveSchedulesToStorage();
+                    closeModal();
+                };
+
+                const editSchedule = (item) => {
+                    editingItem.value = item;
+                    formSchedule.value = { ...item };
+                    showAddModal.value = true;
+                };
+
+                const deleteSchedule = (id) => {
+                    if (confirm("この奉仕予定を削除してもよろしいですか？")) {
+                        schedules.value = schedules.value.filter(s => s.id !== id);
+                        saveSchedulesToStorage();
+                        showToast("削除しました");
+                    }
+                };
+
+                const closeModal = () => {
+                    showAddModal.value = false;
+                    editingItem.value = null;
+                    formSchedule.value = { date: '', time: '09:30', location: '', leader: '', area: '' };
+                };
+
+                const resetToToday = () => {
+                    currentSimulatedDate.value = getTodayDateString();
+                    showToast("表示日を本日にセットしました");
+                };
+
+                const loadPresetOctoberData = () => {
+                    schedules.value = mergeSchedulesWithoutDuplicates(schedules.value, OCTOBER_2026_SCHEDULE);
+                    customNotes.value = OCTOBER_2026_NOTES;
+                    filterMonth.value = '10';
+                    saveSchedulesToStorage();
+                    localStorage.setItem('service_notes_v1', JSON.stringify(customNotes.value));
+                    showToast("2026年10月の奉仕予定（25件）を読み込みました！");
+                    activeTab.value = 'home';
+                };
+
+                const loadPresetSeptemberData = () => {
+                    schedules.value = mergeSchedulesWithoutDuplicates(schedules.value, SEPTEMBER_2026_SCHEDULE);
+                    filterMonth.value = '09';
+                    saveSchedulesToStorage();
+                    showToast("2026年9月の奉仕予定を読み込みました");
+                    activeTab.value = 'home';
+                };
+
+                const clearAllData = () => {
+                    if (confirm("すべてのデータを削除して初期状態に戻しますか？")) {
+                        schedules.value = [];
+                        customNotes.value = [];
+                        localStorage.removeItem('service_schedules_v1');
+                        localStorage.removeItem('service_notes_v1');
+                        showSettings.value = false;
+                        showToast("全データをクリアしました");
+                    }
+                };
+
+                const saveNotes = () => {
+                    customNotes.value = rawNotesInput.value.split('\n').filter(l => l.trim().length > 0);
+                    localStorage.setItem('service_notes_v1', JSON.stringify(customNotes.value));
+                    editNotesModal.value = false;
+                    showToast("区域メモを保存しました");
+                };
+
+                const copyDetails = async (item) => {
+                    const text = `【奉仕案内】\n月日: ${formatDateShort(item.date)}（${getDayOfWeek(item.date)}）${item.time}\n集合場所: ${item.location}\n区域: ${item.area ? 'No.' + item.area : '指定なし'}\n司会者: ${formatLeader(item.leader)}`;
+                    
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        try {
+                            await navigator.clipboard.writeText(text);
+                            showToast("詳細をクリップボードにコピーしました！");
+                            return;
+                        } catch (err) {
+                            console.warn("Clipboard API copy failed, fallback to execCommand:", err);
+                        }
+                    }
+
+                    // Fallback for older browsers / restricted contexts
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast("詳細をクリップボードにコピーしました！");
+                    } catch (e) {
+                        showToast("コピーに失敗しました");
+                    } finally {
+                        document.body.removeChild(textarea);
+                    }
+                };
+
+                const formatDateFormatted = (dateStr) => {
+                    if (!dateStr) return '';
+                    const [y, m, d] = dateStr.split('-');
+                    const dow = getDayOfWeek(dateStr);
+                    return `${parseInt(m)}月${parseInt(d)}日（${dow}）`;
+                };
+
+                const formatDateShort = (dateStr) => {
+                    if (!dateStr) return '';
+                    const [y, m, d] = dateStr.split('-');
+                    return `${parseInt(m)}/${parseInt(d)}`;
+                };
+
+                const getDayOfWeek = (dateStr) => {
+                    const days = ['日', '月', '火', '水', '木', '金', '土'];
+                    const date = parseLocalDate(dateStr);
+                    return days[date.getDay()];
+                };
+
+                const isWeekend = (dateStr) => {
+                    const day = parseLocalDate(dateStr).getDay();
+                    return day === 0 || day === 6;
+                };
+
+                const cleanLocationName = (loc) => {
+                    if (!loc) return '';
+                    return loc.replace(/\([^)]*\)/g, '');
+                };
+
+                // Check if location string actually contains a real location/address
+                const hasMapLocation = (loc) => {
+                    if (!loc) return false;
+                    const trimmed = loc.trim();
+                    if (!trimmed) return false;
+                    // Exclude non-location instructions like "連絡", "未定", etc.
+                    if (trimmed.includes('連絡') || trimmed.includes('未定') || trimmed === '司会者に連絡') {
+                        return false;
+                    }
+                    return true;
+                };
+
+                // Format location for Google Maps query with "江戸川区" prefix
+                const getMapSearchQuery = (loc) => {
+                    if (!loc) return '';
+                    const cleaned = cleanLocationName(loc).trim();
+                    // If address doesn't already contain 江戸川区 or 東京都, prepend 江戸川区
+                    if (!cleaned.includes('江戸川区') && !cleaned.includes('東京都')) {
+                        return `東京都江戸川区 ${cleaned}`;
+                    }
+                    return cleaned;
+                };
+
+                return {
+                    activeTab,
+                    schedules,
+                    todaysSchedule,
+                    nextUpcomingSchedule,
+                    filteredSchedules,
+                    searchQuery,
+                    filterMonth,
+                    availableMonths,
+                    currentSimulatedDate,
+                    showAddModal,
+                    showSettings,
+                    editNotesModal,
+                    editingItem,
+                    formSchedule,
+                    customNotes,
+                    rawNotesInput,
+                    toastMessage,
+                    uploadedFile,
+                    imagePreviewUrl,
+                    isDragging,
+                    isProcessing,
+                    fileInput,
+                    rawPasteText,
+                    triggerFileInput,
+                    handleFileSelect,
+                    handleFileDrop,
+                    processFileAuto,
+                    processTextPaste,
+                    openAddModal,
+                    saveSchedule,
+                    editSchedule,
+                    deleteSchedule,
+                    closeModal,
+                    resetToToday,
+                    loadPresetOctoberData,
+                    loadPresetSeptemberData,
+                    clearAllData,
+                    saveNotes,
+                    copyDetails,
+                    formatDateFormatted,
+                    formatDateShort,
+                    getDayOfWeek,
+                    isWeekend,
+                    cleanLocationName,
+                    hasMapLocation,
+                    getMapSearchQuery,
+                    formatLeader
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
